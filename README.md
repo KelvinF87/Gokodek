@@ -2,7 +2,7 @@
 
 **Gokodek** es un agente de desarrollo local autónomo y altamente optimizado diseñado para funcionar en terminales interactivas (TUI) con modelos locales (Ollama) o remotos (OpenAI, Gemini, OpenRouter).
 
-**Autor**: Kelvin Jose Familia Adames ([KelvinF87](https://kelvinf87.github.io/yo/))  
+**Autor**: Kelvin Jose Familia Adames ([KelvinF87](https://kelvinf87.github.io/yo/)) | **4K Services**: [https://4kservices.es/](https://4kservices.es/)  
 **Licencia**: MIT (Open Source)  
 **Repositorio Oficial**: [https://github.com/KelvinF87/Gokodek.git](https://github.com/KelvinF87/Gokodek.git)
 
