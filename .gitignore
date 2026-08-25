@@ -1,0 +1,29 @@
+# Binarios y ejecutable de Go
+*.exe
+*.exe.log
+*.dll
+*.so
+*.dylib
+gokodek
+gokodek.exe
+
+# Directorio de distribución compilada
+dist/
+
+# Archivos temporales y de configuración de Gokodek local
+.gokodek/
+*.log
+
+# Archivos de entorno y secretos
+.env
+.env.local
+*.key
+*.pem
+
+# Archivos del sistema y de editores de código
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
