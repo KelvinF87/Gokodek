@@ -436,12 +436,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.onSubmit(prompt)
 			return m, nil
 		case "backspace":
+			if m.cursorIdx > len(m.input) {
+				m.cursorIdx = len(m.input)
+			}
 			if m.cursorIdx > 0 && len(m.input) > 0 {
 				m.input = m.input[:m.cursorIdx-1] + m.input[m.cursorIdx:]
 				m.cursorIdx--
 			}
 			return m, nil
 		case "delete":
+			if m.cursorIdx < 0 {
+				m.cursorIdx = 0
+			}
 			if m.cursorIdx < len(m.input) {
 				m.input = m.input[:m.cursorIdx] + m.input[m.cursorIdx+1:]
 			}
@@ -458,6 +464,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lastCommand = ""
 			return m, nil
 		default:
+			// Ensure cursorIdx bounds before string slicing
+			if m.cursorIdx < 0 {
+				m.cursorIdx = 0
+			}
+			if m.cursorIdx > len(m.input) {
+				m.cursorIdx = len(m.input)
+			}
 			// Handle printable characters
 			if len(msg.String()) == 1 && msg.String()[0] >= 32 {
 				ch := msg.String()
