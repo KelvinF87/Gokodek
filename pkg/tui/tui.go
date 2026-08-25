@@ -267,7 +267,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.viewport.Width = msg.Width
+		if msg.Width > 35 {
+			m.viewport.Width = msg.Width - 32
+		} else {
+			m.viewport.Width = msg.Width
+		}
 		if msg.Height > 8 {
 			m.viewport.Height = msg.Height - 6 // reserve footer + input
 		} else {
@@ -360,11 +364,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "f2":
 			if len(m.recentModels) > 0 {
-				m.picker = &picker{title: "Modelos recientes", options: m.recentModels, selected: 0, onSelect: func(index int) {
-					if index >= 0 && index < len(m.recentModels) {
-						m.modelName = m.recentModels[index]
+				// Rotate to next recent model in list
+				nextIdx := 0
+				for i, name := range m.recentModels {
+					if strings.EqualFold(name, m.modelName) || strings.EqualFold(name, strings.TrimPrefix(m.modelName, "ollama/")) {
+						nextIdx = (i + 1) % len(m.recentModels)
+						break
 					}
-				}}
+				}
+				chosen := m.recentModels[nextIdx]
+				m.modelName = chosen
+				m.addMessage(tuiMessage{kind: "system", data: "F2: Modelo cambiado a " + chosen})
 			}
 			return m, nil
 		case "tab":
@@ -650,9 +660,36 @@ func (m *Model) View() string {
 		statsStr += "  " + styleKey.Render(fmt.Sprintf("↑ scroll %d%% — PgUp/PgDn mueve, End vuelve al final", int(m.viewport.ScrollPercent()*100)))
 	}
 
+	// Sidebar lateral de métricas de tokens
+	sidebarStyle := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(colorDim).
+		Padding(0, 1).
+		Width(30)
+
+	totalTok := m.stats.promptTok + m.stats.genTok
+	sidebarContent := fmt.Sprintf(
+		"%s\n%s\n\n%s\nPrompt: %d\nGen: %d\nTotal: %d\n\n%s\nModelo: %s\nModo: %s\nF2: Rotar modelos",
+		styleHeader.Render(" METRICAS "),
+		styleStats.Render("Tokens Conversación"),
+		styleKey.Render("✦ RESUMEN TOKENS"),
+		m.stats.promptTok,
+		m.stats.genTok,
+		totalTok,
+		styleKey.Render("✦ PROYECTO"),
+		m.modelName,
+		m.mode,
+	)
+	sidebar := sidebarStyle.Render(sidebarContent)
+
+	mainView := lipgloss.JoinHorizontal(lipgloss.Top,
+		m.viewport.View(),
+		sidebar,
+	)
+
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
-		m.viewport.View(),
+		mainView,
 		promptStr,
 		pickerStr,
 		inputBox,

@@ -130,6 +130,7 @@ func main() {
 		tools.NewRAGIndexTool(absoluteWorkspace, clientEndpoint, config.EmbeddingModel),
 		tools.NewRAGSearchTool(absoluteWorkspace, clientEndpoint, config.EmbeddingModel),
 		tools.NewCreateGlobalSkillTool(absoluteWorkspace, clientEndpoint, config.EmbeddingModel),
+		tools.NewCreateDocsTool(absoluteWorkspace),
 		tools.NewServerTool(absoluteWorkspace),
 		tools.NewGitTool(absoluteWorkspace),
 	)
