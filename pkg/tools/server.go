@@ -160,14 +160,22 @@ func (t *ServerTool) detectPlanInDir(dir string) (serverPlan, error) {
 			}
 		}
 	}
-	if fileExists(filepath.Join(dir, "index.html")) || hasExtension(dir, ".html") {
+	if fileExists(filepath.Join(dir, "index.html")) || fileExists(filepath.Join(dir, "index.htm")) || hasExtension(dir, ".html") {
 		if commandExists("python") {
 			return serverPlan{Runtime: "static-python", Command: "python", Args: []string{"-m", "http.server", "PORT", "--bind", "127.0.0.1"}}, nil
 		}
 		if commandExists("py") {
 			return serverPlan{Runtime: "static-python", Command: "py", Args: []string{"-m", "http.server", "PORT", "--bind", "127.0.0.1"}}, nil
 		}
-		return serverPlan{}, fmt.Errorf("proyecto HTML detectado pero Python no está instalado")
+		if commandExists("npx") || commandExists("npx.cmd") {
+			cmd := "npx"
+			if runtime.GOOS == "windows" {
+				cmd = "npx.cmd"
+			}
+			return serverPlan{Runtime: "static-serve", Command: cmd, Args: []string{"-y", "serve", "-l", "PORT"}}, nil
+		}
+		// Fallback utilizando la herramienta integrada de servidor Go de gokodek
+		return serverPlan{Runtime: "static-gokodek", Command: os.Args[0], Args: []string{"-serve-static", dir, "PORT"}}, nil
 	}
 	return serverPlan{}, fmt.Errorf("no se encontró punto de entrada ejecutable en %s; esperado index.html, .php, package.json o artisan", dir)
 }

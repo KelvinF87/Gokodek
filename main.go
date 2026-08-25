@@ -44,7 +44,22 @@ func main() {
 	visionTools := flag.Bool("vision-tools", false, "Indicar que el modelo de visión también soporta tool calling")
 	configPath := flag.String("config", agent.ConfigPath(), "Ruta de configuración de perfiles")
 	useTUI := flag.Bool("tui", true, "Usar la interfaz gráfica de terminal (TUI). Poner -tui=false para el modo clásico de línea")
+	serveStatic := flag.Bool("serve-static", false, "Servir archivos estáticos de forma interna")
 	flag.Parse()
+
+	if *serveStatic {
+		args := flag.Args()
+		if len(args) >= 2 {
+			dir := args[0]
+			port := args[1]
+			log.Printf("GoKodek Servidor Estático escuchando en http://127.0.0.1:%s (Dir: %s)", port, dir)
+			http.Handle("/", http.FileServer(http.Dir(dir)))
+			if err := http.ListenAndServe("127.0.0.1:"+port, nil); err != nil {
+				log.Fatalf("Error en servidor estático: %v", err)
+			}
+			return
+		}
+	}
 
 	absoluteWorkspace, err := filepath.Abs(*workspace)
 	if flag.CommandLine.Lookup("config") != nil && *configPath != agent.ConfigPath() {
