@@ -24,16 +24,32 @@
 - **Go 1.22+**
 - **Ollama** (para ejecución de modelos locales como `qwen2.5-coder`, `qwen3` o `nomic-embed-text` para RAG)
 
-### Compilación Local
+### Compilación e Instalación Multiplataforma
+
+Gokodek está escrito en Go nativo, lo que permite compilar e instalar binarios autónomos sin dependencias en **Linux**, **macOS** y **Windows**.
+
+#### 🐧 Linux / 🍎 macOS
 ```bash
-go build -o gokodek.exe .
+curl -fsSL https://raw.githubusercontent.com/KelvinF87/Gokodek/main/install.sh | bash
+# O compilando desde el fuente:
+./install.sh
 ```
 
-### Instalación en el Sistema (Windows)
+#### 🪟 Windows (PowerShell)
 ```powershell
 .\install.ps1
 ```
-*El script colocará `gokodek.exe` en `%LOCALAPPDATA%\Programs\gokodek` y actualizará automáticamente tu variable de entorno PATH.*
+
+#### 📦 Compilación Cruzada Multiplataforma (Cross-compilation)
+Para compilar los binarios de todas las plataformas desde cualquier sistema operativo:
+```bash
+# En Bash:
+./build-all.sh
+
+# En PowerShell:
+.\build-all.ps1
+```
+*Los ejecutables para Linux (`amd64`/`arm64`), macOS (`amd64`/`arm64`) y Windows se generarán en la carpeta `dist/`.*
 
 ---
 
