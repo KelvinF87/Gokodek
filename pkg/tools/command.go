@@ -81,8 +81,17 @@ func (t *RunCmdTool) Execute(argsJSON string) (string, error) {
 	cmd.Dir = t.workspace
 	output, err := cmd.CombinedOutput()
 	result := string(output)
-	if len(result) > maxCommandOutput {
-		result = result[:maxCommandOutput] + "\n[output truncated]"
+
+	// Interceptar y compactar logs extremadamente extensos para reducir desperdicio de tokens
+	if len(result) > 4000 {
+		lines := strings.Split(result, "\n")
+		if len(lines) > 60 {
+			head := strings.Join(lines[:25], "\n")
+			tail := strings.Join(lines[len(lines)-25:], "\n")
+			result = fmt.Sprintf("%s\n\n... [%d líneas intermedias filtradas para ahorrar memoria de tokens RAG] ...\n\n%s", head, len(lines)-50, tail)
+		} else if len(result) > maxCommandOutput {
+			result = result[:maxCommandOutput] + "\n[salida recortada para optimizar tokens]"
+		}
 	}
 	if ctx.Err() == context.DeadlineExceeded {
 		return result, fmt.Errorf("command timed out after %s", timeout)

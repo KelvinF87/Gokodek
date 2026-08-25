@@ -299,8 +299,9 @@ func runTUI(ctx context.Context, loop *agent.Agent, config agent.Config, model, 
 	loop.ThinkingWriter = app.ThinkingWriter
 	loop.AnimatedSpinner = false
 
-	// Welcome message (added directly to the model, safe before Start)
-	app.AddSystemMessage(fmt.Sprintf("gokodek %s listo. Escribe una instrucción o usa /help.", version))
+	// Welcome banner oficial de Gokodek por Kelvin Familia
+	welcomeMsg := fmt.Sprintf("✦ GoKodek %s by Kelvin Jose Familia Adames\n✦ Agente Inteligente Local Optimizado | Presiona F2 para rotar modelos | Escribe /help para comandos", version)
+	app.AddSystemMessage(welcomeMsg)
 
 	// Triple-Esc cancels the running agent execution.
 	var cancelMu sync.Mutex
