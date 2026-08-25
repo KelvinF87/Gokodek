@@ -161,20 +161,20 @@ func (t *ServerTool) detectPlanInDir(dir string) (serverPlan, error) {
 		}
 	}
 	if fileExists(filepath.Join(dir, "index.html")) || fileExists(filepath.Join(dir, "index.htm")) || hasExtension(dir, ".html") {
-		if commandExists("python") {
+		if commandExists("python") && isExecutableUsable("python") {
 			return serverPlan{Runtime: "static-python", Command: "python", Args: []string{"-m", "http.server", "PORT", "--bind", "127.0.0.1"}}, nil
 		}
-		if commandExists("py") {
+		if commandExists("py") && isExecutableUsable("py") {
 			return serverPlan{Runtime: "static-python", Command: "py", Args: []string{"-m", "http.server", "PORT", "--bind", "127.0.0.1"}}, nil
 		}
-		if commandExists("npx") || commandExists("npx.cmd") {
+		if (commandExists("npx") || commandExists("npx.cmd")) && isExecutableUsable("npx") {
 			cmd := "npx"
 			if runtime.GOOS == "windows" {
 				cmd = "npx.cmd"
 			}
 			return serverPlan{Runtime: "static-serve", Command: cmd, Args: []string{"-y", "serve", "-l", "PORT"}}, nil
 		}
-		// Fallback utilizando la herramienta integrada de servidor Go de gokodek
+		// Servidor HTTP interno de GoKodek de alto rendimiento directo e infalible
 		return serverPlan{Runtime: "static-gokodek", Command: os.Args[0], Args: []string{"-serve-static", dir, "PORT"}}, nil
 	}
 	return serverPlan{}, fmt.Errorf("no se encontró punto de entrada ejecutable en %s; esperado index.html, .php, package.json o artisan", dir)
@@ -348,6 +348,21 @@ func probeURL(address string) bool {
 }
 
 func commandExists(name string) bool { _, err := exec.LookPath(name); return err == nil }
+
+func isExecutableUsable(name string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, name, "--version")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false
+	}
+	outStr := strings.ToLower(string(output))
+	if strings.Contains(outStr, "microsoft store") || strings.Contains(outStr, "app execution aliases") {
+		return false
+	}
+	return true
+}
 
 func quoteArg(value string) string {
 	if strings.ContainsAny(value, " \t") {
