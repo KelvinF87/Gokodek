@@ -144,6 +144,7 @@ func main() {
 
 	client := agent.NewOllamaClient(clientEndpoint)
 	agentLoop := agent.NewAgent(client, registry, *model, os.Stderr)
+	mustRegister(registry, tools.NewInvokeDebateTool(absoluteWorkspace, agentLoop))
 	agentLoop.NumCtx = *numCtx
 	agentLoop.NumPredict = *numPredict
 	agentLoop.Think = *think
