@@ -283,6 +283,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case tea.MouseMsg:
+		switch msg.Action {
+		case tea.MouseActionPress:
+			if msg.Button == tea.MouseButtonWheelUp {
+				m.viewport.LineUp(3)
+				m.follow = m.viewport.AtBottom()
+			} else if msg.Button == tea.MouseButtonWheelDown {
+				m.viewport.LineDown(3)
+				m.follow = m.viewport.AtBottom()
+			}
+		}
+		return m, nil
+
+
+
 	case tea.KeyMsg:
 		// When a text prompt is open, keys edit the input and Enter submits it.
 		if m.textPrompt != nil {
@@ -416,6 +431,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, nil
+		case "shift+enter", "alt+enter", "ctrl+j":
+			if m.cursorIdx < 0 {
+				m.cursorIdx = 0
+			}
+			if m.cursorIdx > len(m.input) {
+				m.cursorIdx = len(m.input)
+			}
+			m.input = m.input[:m.cursorIdx] + "\n" + m.input[m.cursorIdx:]
+			m.cursorIdx++
+			return m, nil
 		case "enter", "\r", "\n":
 			if m.busy {
 				return m, nil
@@ -471,11 +496,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursorIdx > len(m.input) {
 				m.cursorIdx = len(m.input)
 			}
-			// Handle printable characters
-			if len(msg.String()) == 1 && msg.String()[0] >= 32 {
-				ch := msg.String()
-				m.input = m.input[:m.cursorIdx] + ch + m.input[m.cursorIdx:]
-				m.cursorIdx++
+			// Handle printable and pasted text (including multiline pastes)
+			str := msg.String()
+			if len(str) > 0 && !strings.HasPrefix(str, "ctrl+") && !strings.HasPrefix(str, "alt+") {
+				m.input = m.input[:m.cursorIdx] + str + m.input[m.cursorIdx:]
+				m.cursorIdx += len(str)
 			}
 			m.maybeShowCommandHelp()
 			return m, nil
@@ -615,15 +640,14 @@ func (m *Model) View() string {
 
 	// Footer with options
 	options := fmt.Sprintf(
-		"%s  %s  %s  %s  %s  %s  %s  %s",
-		styleKey.Render("Enter")+styleKeyLabel.Render(" Send "),
-		styleKey.Render("↑")+styleKeyLabel.Render(" History "),
-		styleKey.Render("PgUp/PgDn")+styleKeyLabel.Render(" Scroll "),
-		styleKey.Render("/help")+styleKeyLabel.Render(" Help "),
-		styleKey.Render("/modelo")+styleKeyLabel.Render(" Model "),
-		styleKey.Render("/new")+styleKeyLabel.Render(" Nuevo "),
+		"%s  %s  %s  %s  %s  %s  %s",
+		styleKey.Render("Enter")+styleKeyLabel.Render(" Enviar "),
+		styleKey.Render("Shift+Enter")+styleKeyLabel.Render(" Multilínea "),
+		styleKey.Render("Ratón / PgUp")+styleKeyLabel.Render(" Scroll "),
+		styleKey.Render("F2")+styleKeyLabel.Render(" Rotar "),
+		styleKey.Render("/modelo")+styleKeyLabel.Render(" Modelo "),
 		styleKey.Render("/config")+styleKeyLabel.Render(" Config "),
-		styleKey.Render("/talk")+styleKeyLabel.Render(" Debate "),
+		styleKey.Render("/help")+styleKeyLabel.Render(" Ayuda "),
 	)
 	footer := styleFooter.Render(options + busyStr)
 
