@@ -277,8 +277,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.viewport.Width = msg.Width
 		}
-		if msg.Height > 8 {
-			m.viewport.Height = msg.Height - 6 // reserve footer + input
+		if msg.Height > 10 {
+			m.viewport.Height = msg.Height - 7 // reserve space for header (1), input (2), stats (1), and footer (1)
 		} else {
 			m.viewport.Height = 1
 		}
