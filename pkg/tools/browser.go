@@ -150,8 +150,8 @@ func (t *BrowserScreenshotTool) Execute(argsJSON string) (string, error) {
 	if _, err := os.Stat(outputPath); err != nil {
 		return "", fmt.Errorf("browser did not create screenshot: %w", err)
 	}
-	domExcerpt, domTitle := dumpDOM(ctx, browser, profile, address)
-	return visionResult(outputPath, address, t.visible, domExcerpt, domTitle, browser)
+	domExcerpt, domTitle, consoleLogs := dumpDOM(ctx, browser, profile, address)
+	return visionResult(outputPath, address, t.visible, domExcerpt, domTitle, consoleLogs, browser)
 }
 
 type CaptureScreenTool struct {
@@ -201,7 +201,7 @@ $bitmap.Dispose()
 	if _, err := os.Stat(outputPath); err != nil {
 		return "", fmt.Errorf("desktop screenshot was not created: %w", err)
 	}
-	return visionResult(outputPath, "desktop", false, "", "", "")
+	return visionResult(outputPath, "desktop", false, "", "", "", "")
 }
 
 type MouseClickTool struct{ allowed bool }
@@ -415,14 +415,14 @@ var (
 	browserTagPattern = regexp.MustCompile(`(?is)<[^>]+>`)
 )
 
-func dumpDOM(ctx context.Context, browser, profile, address string) (string, string) {
+func dumpDOM(ctx context.Context, browser, profile, address string) (string, string, string) {
 	cmd := exec.CommandContext(ctx, browser,
 		"--headless=new", "--disable-gpu", "--disable-extensions", "--no-first-run",
-		"--no-default-browser-check", "--user-data-dir="+profile, "--dump-dom", address,
+		"--no-default-browser-check", "--enable-logging", "--v=1", "--user-data-dir="+profile, "--dump-dom", address,
 	)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", ""
+		return "", "", "error dumping DOM: " + err.Error()
 	}
 	dom := string(output)
 	lower := strings.ToLower(dom)
@@ -433,16 +433,33 @@ func dumpDOM(ctx context.Context, browser, profile, address string) (string, str
 	if match := titlePattern.FindStringSubmatch(dom); len(match) > 1 {
 		title = strings.TrimSpace(html.UnescapeString(browserTagPattern.ReplaceAllString(match[1], "")))
 	}
+
+	// Extraer fragmentos de errores detectados en la página o consola
+	var consoleLogs []string
+	if strings.Contains(lower, "error") || strings.Contains(lower, "cors") || strings.Contains(lower, "failed to load") || strings.Contains(lower, "exception") {
+		lines := strings.Split(dom, "\n")
+		for _, line := range lines {
+			l := strings.ToLower(line)
+			if strings.Contains(l, "error") || strings.Contains(l, "cors") || strings.Contains(l, "uncaught") || strings.Contains(l, "fail") {
+				consoleLogs = append(consoleLogs, strings.TrimSpace(line))
+				if len(consoleLogs) >= 5 {
+					break
+				}
+			}
+		}
+	}
+
 	text := browserTagPattern.ReplaceAllString(dom, " ")
 	text = html.UnescapeString(text)
 	text = strings.Join(strings.Fields(text), " ")
 	if len(text) > 2000 {
 		text = text[:2000] + "..."
 	}
-	return text, title
+	logsText := strings.Join(consoleLogs, " | ")
+	return text, title, logsText
 }
 
-func visionResult(imagePath, source string, visible bool, domExcerpt, domTitle, browser string) (string, error) {
+func visionResult(imagePath, source string, visible bool, domExcerpt, domTitle, consoleLogs, browser string) (string, error) {
 	result, err := json.Marshal(map[string]interface{}{
 		"status":       "screenshot_captured",
 		"image_path":   imagePath,
@@ -451,6 +468,7 @@ func visionResult(imagePath, source string, visible bool, domExcerpt, domTitle, 
 		"opened_url":   source,
 		"dom_title":    domTitle,
 		"dom_excerpt":  domExcerpt,
+		"console_logs": consoleLogs,
 		"browser":      browser,
 	})
 	if err != nil {
