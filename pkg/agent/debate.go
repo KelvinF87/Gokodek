@@ -17,25 +17,30 @@ type AgentRole struct {
 
 // Predefined agent roles for the debate system.
 var (
+	RoleBoss = AgentRole{
+		Name:        "JEFE_LEAD",
+		Icon:        "👑",
+		SystemVoice: "Eres el Jefe Técnico y Arquitecto Principal. Tu objetivo es revisar las propuestas de los agentes críticos especialistas, exigir máxima calidad, tomar la decisión final y dar el VISTO BUENO oficial cuando la solución sea 100% impecable y ejecutable.",
+	}
 	RoleArchitect = AgentRole{
-		Name:        "architect",
+		Name:        "Arquitecto_Estructura",
 		Icon:        "🏗️",
-		SystemVoice: "You are the Architect. You focus on structure, design patterns, separation of concerns, and long-term maintainability. Challenge solutions that are hacky or will not scale.",
+		SystemVoice: "Eres el Arquitecto de Software Crítico. Te enfocas en patrones de diseño, mantenibilidad a largo plazo y acoplamiento limpio. Rechazas parches superficiales o código que no sea escalable.",
 	}
-	RoleReviewer = AgentRole{
-		Name:        "reviewer",
-		Icon:        "🔍",
-		SystemVoice: "You are the Code Reviewer. You look for bugs, edge cases, security issues, and performance problems. Be critical but constructive.",
+	RoleBackendSecurity = AgentRole{
+		Name:        "Experto_Backend_Seguridad",
+		Icon:        "🛡️",
+		SystemVoice: "Eres el Especialista Crítico en Backend y Seguridad. Buscas vulnerabilidades, fallos en APIs, concurrencia, fugas de memoria y rendimiento en base de datos o lógica de servidor.",
 	}
-	RoleImplementer = AgentRole{
-		Name:        "implementer",
-		Icon:        "⚡",
-		SystemVoice: "You are the Implementer. You focus on practical, working solutions. Push for code that compiles, runs, and solves the actual problem. Counter over-engineering.",
+	RoleFrontendUX = AgentRole{
+		Name:        "Experto_Frontend_UX",
+		Icon:        "🎨",
+		SystemVoice: "Eres el Especialista Crítico en Frontend y Experiencia de Usuario. Exiges una estética visual deslumbrante, rendimiento a 60fps, responsividad impecable y animación fluida.",
 	}
 	RoleTester = AgentRole{
-		Name:        "tester",
+		Name:        "Experto_QA_Pruebas",
 		Icon:        "🧪",
-		SystemVoice: "You are the QA Engineer. You think about test coverage, edge cases, error handling, and verification strategies. Ensure the solution is reliable.",
+		SystemVoice: "Eres el Ingeniero de QA y Pruebas Automáticas. Verificas casos de borde, manejo de excepciones y pruebas concretas de verificación antes de aprobar cualquier cambio.",
 	}
 )
 
@@ -59,13 +64,13 @@ type DebateConfig struct {
 	Context string
 }
 
-// DefaultDebateConfig returns a sensible default debate setup.
+// DefaultDebateConfig returns a sensible default debate setup with critical experts and the Boss.
 func DefaultDebateConfig(topic string) DebateConfig {
 	return DebateConfig{
-		MaxRounds:     3,
-		Agents:        []AgentRole{RoleArchitect, RoleReviewer, RoleImplementer},
+		MaxRounds:     2,
+		Agents:        []AgentRole{RoleArchitect, RoleBackendSecurity, RoleFrontendUX, RoleTester, RoleBoss},
 		Topic:         topic,
-		MaxTokensEach: 512,
+		MaxTokensEach: 600,
 	}
 }
 
@@ -87,17 +92,15 @@ func NewDebateEngine(client *OllamaClient, model string, config DebateConfig) *D
 }
 
 // Run executes the multi-agent debate and returns the final consensus.
-// onStream is called incrementally as each agent writes, and onComplete once per
-// finished agent contribution.
 func (d *DebateEngine) Run(ctx context.Context, onStream func(DebateMessage), onComplete func(DebateMessage)) (string, error) {
 	if len(d.Config.Agents) == 0 {
-		return "", fmt.Errorf("no agents configured for debate")
+		return "", fmt.Errorf("no hay agentes configurados para el debate")
 	}
 
 	var discussion []string
-	discussion = append(discussion, fmt.Sprintf("TOPIC: %s", d.Config.Topic))
+	discussion = append(discussion, fmt.Sprintf("TEMA DE DISCUSIÓN: %s", d.Config.Topic))
 	if d.Config.Context != "" {
-		discussion = append(discussion, fmt.Sprintf("PROJECT CONTEXT:\n%s", d.Config.Context))
+		discussion = append(discussion, fmt.Sprintf("CONTEXTO DEL PROYECTO:\n%s", d.Config.Context))
 	}
 
 	for round := 1; round <= d.Config.MaxRounds; round++ {
@@ -106,26 +109,22 @@ func (d *DebateEngine) Run(ctx context.Context, onStream func(DebateMessage), on
 				return "", ctx.Err()
 			}
 
-			// Build context for this agent. The prompt demands concrete proposals
-			// grounded in the real project, not generic best-practice advice.
 			systemPrompt := fmt.Sprintf(`%s
 
-You are participating in a multi-agent discussion about a real project.
+Estás participando en un DEBATE TÉCNICO PROFESIONAL de resolución de problemas.
 
-TOPIC: %s
+TEMA: %s
 
-PROJECT CONTEXT (real files in the workspace):
+CONTEXTO REAL DEL PROYECTO (archivos en el workspace):
 %s
 
-Previous discussion:
+Transcripción del debate previo:
 %s
 
-Your rules:
-- Ground every claim in the PROJECT CONTEXT above. Never give generic advice like "use git" or "write unit tests" without tying it to a specific file or behavior in this project.
-- Propose CONCRETE actions: exact file names, exact changes, exact functions to add or modify.
-- Keep it to 2-4 short paragraphs.
-- If you agree with a previous agent, say so in one line and add one new concrete detail. If you disagree, explain with specific reasoning about the code.
-- End with a numbered list "ACCIONES:" of the 2-4 concrete steps you recommend, each referencing a real file.`, agent.SystemVoice, d.Config.Topic, d.Config.Context, strings.Join(discussion, "\n"))
+REGLAS DE INTERVENCIÓN (SIEMPRE EN ESPAÑOL):
+- Si eres un AGENTE CRÍTICO ESPECIALISTA: Analiza desde tu área de especialidad. Identifica errores técnicos reales, problemas de seguridad o fallos visuales. Propón soluciones concretas especificando rutas de archivos exactas.
+- Si eres el JEFE_LEAD (👑): Revisa los argumentos de los críticos especialistas. Aprueba o corrige su enfoque. Si la solución es óptima y resuelve el problema al 100%%, otorga explícitamente el "VISTO BUENO OFICIAL 👑".
+- Sé directo, conciso y técnico. Máximo 2 párrafos cortos y termina con una lista de "ACCIONES CONCRETAS:".`, agent.SystemVoice, d.Config.Topic, d.Config.Context, strings.Join(discussion, "\n"))
 
 			var currentMessage strings.Builder
 			msg := DebateMessage{
@@ -135,14 +134,13 @@ Your rules:
 				Time:  time.Now(),
 			}
 
-			// Use options to limit tokens
 			options := map[string]interface{}{
 				"num_predict": d.Config.MaxTokensEach,
 			}
 
 			final, _, err := d.Client.ChatStream(ctx, ChatRequest{
 				Model:    d.Model,
-				Messages: []Message{{Role: "system", Content: systemPrompt}, {Role: "user", Content: "Provide your analysis now."}},
+				Messages: []Message{{Role: "system", Content: systemPrompt}, {Role: "user", Content: "Presenta tu análisis técnico y propuesta resolutiva ahora."}},
 				Options:  options,
 			}, func(content string) {
 				currentMessage.WriteString(content)
@@ -153,7 +151,7 @@ Your rules:
 			}, nil)
 
 			if err != nil {
-				return "", fmt.Errorf("agent %s failed: %w", agent.Name, err)
+				return "", fmt.Errorf("agente %s falló: %w", agent.Name, err)
 			}
 
 			content := final.Content
@@ -164,7 +162,7 @@ Your rules:
 			msg.Round = round
 
 			d.Messages = append(d.Messages, msg)
-			discussion = append(discussion, fmt.Sprintf("[%s]: %s", agent.Name, content))
+			discussion = append(discussion, fmt.Sprintf("[%s %s]: %s", agent.Icon, agent.Name, content))
 
 			if onComplete != nil {
 				onComplete(msg)
@@ -172,7 +170,7 @@ Your rules:
 		}
 	}
 
-	// Synthesize final consensus
+	// Synthesize final consensus led by the Boss
 	consensus, err := d.synthesize(ctx, discussion)
 	if err != nil {
 		return d.buildSummary(), nil
@@ -180,37 +178,36 @@ Your rules:
 	return consensus, nil
 }
 
-// synthesize asks one final round for a consensus summary that is a concrete
-// implementation plan, not generic advice.
+// synthesize produce el plan resolutivo final firmado por el Jefe.
 func (d *DebateEngine) synthesize(ctx context.Context, discussion []string) (string, error) {
-	systemPrompt := fmt.Sprintf(`You are a neutral moderator turning a multi-agent discussion into an executable implementation plan.
+	systemPrompt := fmt.Sprintf(`Eres el JEFE TÉCNICO PRINCIPAL (👑 LEAD ARCHITECT BOSS). Has moderado el debate de los agentes críticos especialistas.
 
-The discussion was about: %s
+TEMA EVALUADO: %s
 
-PROJECT CONTEXT:
+CONTEXTO DEL PROYECTO:
 %s
 
-Discussion transcript:
+Transcripción completa del debate:
 %s
 
-Produce a final plan with EXACTLY this structure, in plain text:
+Produce la RESOLUCIÓN FINAL EN ESPAÑOL con la siguiente estructura exacta:
 
-DECISIÓN: one paragraph stating the agreed approach.
+👑 VISTO BUENO DEL JEFE TÉCNICO:
+[Párrafo resolutivo otorgando el visto bueno y confirmando la solución integral aprobada].
 
-PLAN DE IMPLEMENTACIÓN:
-1. <concrete step> (file: <real file name>)
-2. <concrete step> (file: <real file name>)
-3. <concrete step> (file: <real file name>)
+📋 PLAN DE EJECUCIÓN RESOLUTIVO:
+1. <Paso técnico concreto> (Archivo: <ruta_de_archivo>)
+2. <Paso técnico concreto> (Archivo: <ruta_de_archivo>)
+3. <Paso técnico concreto> (Archivo: <ruta_de_archivo>)
 
-VERIFICACIÓN: the exact command or check (e.g. run_test, check_web, go build) that proves the work is done.
-
-Rules: every step must reference a real file from PROJECT CONTEXT. No generic advice. If the discussion was too vague, say so and list the files the agents should have inspected first.`, d.Config.Topic, d.Config.Context, strings.Join(discussion, "\n"))
+🧪 PRUEBAS Y VERIFICACIÓN EXIGIDA:
+[Comando o verificación concreta obligatoria: run_cmd, go test, check_web, browser_screenshot, etc.]`, d.Config.Topic, d.Config.Context, strings.Join(discussion, "\n"))
 
 	response, err := d.Client.Chat(ctx, ChatRequest{
 		Model:    d.Model,
-		Messages: []Message{{Role: "system", Content: systemPrompt}, {Role: "user", Content: "Produce the implementation plan now."}},
+		Messages: []Message{{Role: "system", Content: systemPrompt}, {Role: "user", Content: "Genera la resolución y plan de ejecución final ahora."}},
 		Options: map[string]interface{}{
-			"num_predict": 700,
+			"num_predict": 750,
 		},
 	})
 	if err != nil {
@@ -259,8 +256,8 @@ type DebateRequest struct {
 // ParseDebateRequest parses a /talk command with optional parameters.
 func ParseDebateRequest(input string) DebateRequest {
 	req := DebateRequest{
-		MaxRounds: 3,
-		Agents:    []string{"architect", "reviewer", "implementer"},
+		MaxRounds: 2,
+		Agents:    []string{"architect", "backend", "frontend", "tester", "boss"},
 	}
 
 	body := strings.TrimSpace(strings.TrimPrefix(strings.ToLower(input), "/talk"))
@@ -300,10 +297,12 @@ func ParseDebateRequest(input string) DebateRequest {
 // ResolveAgentRoles converts agent name strings to AgentRole structs.
 func ResolveAgentRoles(names []string) []AgentRole {
 	roleMap := map[string]AgentRole{
-		"architect":   RoleArchitect,
-		"reviewer":    RoleReviewer,
-		"implementer": RoleImplementer,
-		"tester":      RoleTester,
+		"architect": RoleArchitect,
+		"backend":   RoleBackendSecurity,
+		"frontend":  RoleFrontendUX,
+		"tester":    RoleTester,
+		"boss":      RoleBoss,
+		"jefe":      RoleBoss,
 	}
 
 	var roles []AgentRole
@@ -316,7 +315,7 @@ func ResolveAgentRoles(names []string) []AgentRole {
 		}
 	}
 	if len(roles) == 0 {
-		roles = []AgentRole{RoleArchitect, RoleReviewer, RoleImplementer}
+		roles = []AgentRole{RoleArchitect, RoleBackendSecurity, RoleFrontendUX, RoleTester, RoleBoss}
 	}
 	return roles
 }

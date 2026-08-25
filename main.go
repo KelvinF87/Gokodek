@@ -991,32 +991,32 @@ func runDebate(ctx context.Context, client *agent.OllamaClient, model, topic str
 	engine := agent.NewDebateEngine(client, model, config)
 
 	fmt.Fprintf(writer, "\n%s╔══════════════════════════════════════════════════════════════╗%s\n", ansiYellow, ansiReset)
-	fmt.Fprintf(writer, "%s║  %s🎭 MULTI-AGENT DEBATE%s                                     ║%s\n", ansiYellow, ansiBold, ansiYellow, ansiReset)
+	fmt.Fprintf(writer, "%s║  %s🎭 DEBATE TÉCNICO RESOLUTIVO - AGENTES CRÍTICOS & JEFE 👑%s    ║%s\n", ansiYellow, ansiBold, ansiYellow, ansiReset)
 	fmt.Fprintf(writer, "%s╚══════════════════════════════════════════════════════════════╝%s\n\n", ansiYellow, ansiReset)
-	fmt.Fprintf(writer, "%s  Topic:%s %s\n\n", ansiDim, ansiReset, topic)
+	fmt.Fprintf(writer, "%s  Tema:%s %s\n\n", ansiDim, ansiReset, topic)
 
 	consensus, err := engine.Run(ctx,
 		func(msg agent.DebateMessage) {
-			fmt.Fprintf(writer, "\r%s  %s %s thinking...%s", ansiDim, msg.Icon, msg.Agent, ansiReset)
+			fmt.Fprintf(writer, "\r%s  %s %s analizando...%s", ansiDim, msg.Icon, msg.Agent, ansiReset)
 		},
 		func(msg agent.DebateMessage) {
 			fmt.Fprintf(writer, "\r\033[K")
-			fmt.Fprintf(writer, "%s┌─ %s %s (round %d) ─┐%s\n", ansiDim, msg.Icon, msg.Agent, msg.Round, ansiReset)
+			fmt.Fprintf(writer, "%s┌─ %s %s (Ronda %d) ─┐%s\n", ansiYellow, msg.Icon, msg.Agent, msg.Round, ansiReset)
 			lines := strings.Split(msg.Content, "\n")
 			for _, line := range lines {
 				fmt.Fprintf(writer, "%s│%s %s\n", ansiDim, ansiReset, line)
 			}
-			fmt.Fprintf(writer, "%s└──────────────────────────────────────────────┘%s\n\n", ansiDim, ansiReset)
+			fmt.Fprintf(writer, "%s└──────────────────────────────────────────────┘%s\n\n", ansiYellow, ansiReset)
 		},
 	)
 
 	if err != nil {
-		fmt.Fprintf(writer, "%s✗ Debate failed: %v%s\n", ansiRed, err, ansiReset)
+		fmt.Fprintf(writer, "%s✗ Fallo en el debate: %v%s\n", ansiRed, err, ansiReset)
 		return
 	}
 
 	fmt.Fprintf(writer, "%s╔══════════════════════════════════════════════════════════════╗%s\n", ansiGreen, ansiReset)
-	fmt.Fprintf(writer, "%s║  %s📋 CONSENSUS%s                                             ║%s\n", ansiGreen, ansiBold, ansiGreen, ansiReset)
+	fmt.Fprintf(writer, "%s║  %s👑 RESOLUCIÓN FINAL CON VISTO BUENO DEL JEFE TÉCNICO%s         ║%s\n", ansiGreen, ansiBold, ansiGreen, ansiReset)
 	fmt.Fprintf(writer, "%s╚══════════════════════════════════════════════════════════════╝%s\n\n", ansiGreen, ansiReset)
 	fmt.Fprintln(writer, consensus)
 	fmt.Fprintln(writer)
