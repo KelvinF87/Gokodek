@@ -121,10 +121,10 @@ CONTEXTO REAL DEL PROYECTO (archivos en el workspace):
 Transcripción del debate previo:
 %s
 
-REGLAS DE INTERVENCIÓN (SIEMPRE EN ESPAÑOL):
-- Si eres un AGENTE CRÍTICO ESPECIALISTA: Analiza desde tu área de especialidad. Identifica errores técnicos reales, problemas de seguridad o fallos visuales. Propón soluciones concretas especificando rutas de archivos exactas.
-- Si eres el JEFE_LEAD (👑): Revisa los argumentos de los críticos especialistas. Aprueba o corrige su enfoque. Si la solución es óptima y resuelve el problema al 100%%, otorga explícitamente el "VISTO BUENO OFICIAL 👑".
-- Sé directo, conciso y técnico. Máximo 2 párrafos cortos y termina con una lista de "ACCIONES CONCRETAS:".`, agent.SystemVoice, d.Config.Topic, d.Config.Context, strings.Join(discussion, "\n"))
+REGLAS DE INTERVENCIÓN (SIEMPRE EN ESPAÑOL - ULTRA CONCISO):
+- Si eres un AGENTE CRÍTICO ESPECIALISTA: Presenta un análisis directo y conciso (máximo 1 o 2 párrafos cortos). Identifica el fallo exacto en tu área y lista máximo 2 acciones inmediatas.
+- Si eres el JEFE_LEAD (👑): Sintetiza las críticas y otorga el "VISTO BUENO OFICIAL 👑" dictaminando el plan maestro definitivo.
+- Sé extremadamente breve y directo para caber en una tarjeta de resumen.`, agent.SystemVoice, d.Config.Topic, d.Config.Context, strings.Join(discussion, "\n"))
 
 			var currentMessage strings.Builder
 			msg := DebateMessage{
@@ -135,7 +135,7 @@ REGLAS DE INTERVENCIÓN (SIEMPRE EN ESPAÑOL):
 			}
 
 			options := map[string]interface{}{
-				"num_predict": d.Config.MaxTokensEach,
+				"num_predict": 280,
 			}
 
 			final, _, err := d.Client.ChatStream(ctx, ChatRequest{

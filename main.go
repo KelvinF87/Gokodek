@@ -399,7 +399,18 @@ func runTUI(ctx context.Context, loop *agent.Agent, config agent.Config, model, 
 				// concrete files instead of generic advice.
 				contextText := buildDebateContext(loop.Registry, absoluteWorkspace)
 				if client, ok := loop.Client.(*agent.OllamaClient); ok {
-					runDebate(turnCtx, client, loop.Model, topic, app.SystemWriter, contextText)
+					consensusPlan := runDebate(turnCtx, client, loop.Model, topic, app.SystemWriter, contextText)
+					
+					// Invocar inmediatamente al Agente Ejecutor (Builder Agent) para aplicar la resolución aprobada
+					if consensusPlan != "" && turnCtx.Err() == nil {
+						app.AddSystemMessage("⚡ AGENTE EJECUTOR INICIANDO: Aplicando el plan resolutivo aprobado por el Jefe 👑...")
+						loop.Mode = "build"
+						execPrompt := fmt.Sprintf("Ejecuta completamente el siguiente plan resolutivo aprobado por el Jefe Técnico sin detenerte hasta dejar el proyecto perfecto:\n\n%s", consensusPlan)
+						mu.Lock()
+						_, _ = loop.Run(turnCtx, &history, execPrompt)
+						mu.Unlock()
+						app.AddSystemMessage("✅ EJECUCIÓN COMPLETADA: Todos los cambios aprobados en el debate han sido aplicados y verificados.")
+					}
 				} else {
 					app.AddSystemMessage("/talk requiere temporalmente un perfil Ollama.")
 				}
@@ -985,7 +996,7 @@ const (
 	ansiBold    = "\033[1m"
 )
 
-func runDebate(ctx context.Context, client *agent.OllamaClient, model, topic string, writer io.Writer, projectContext string) {
+func runDebate(ctx context.Context, client *agent.OllamaClient, model, topic string, writer io.Writer, projectContext string) string {
 	config := agent.DefaultDebateConfig(topic)
 	config.Context = projectContext
 	engine := agent.NewDebateEngine(client, model, config)
@@ -1001,18 +1012,20 @@ func runDebate(ctx context.Context, client *agent.OllamaClient, model, topic str
 		},
 		func(msg agent.DebateMessage) {
 			fmt.Fprintf(writer, "\r\033[K")
-			fmt.Fprintf(writer, "%s┌─ %s %s (Ronda %d) ─┐%s\n", ansiYellow, msg.Icon, msg.Agent, msg.Round, ansiReset)
+			fmt.Fprintf(writer, "%s┌─ %s %s (Ronda %d) ──────────────────────────┐%s\n", ansiYellow, msg.Icon, msg.Agent, msg.Round, ansiReset)
 			lines := strings.Split(msg.Content, "\n")
 			for _, line := range lines {
-				fmt.Fprintf(writer, "%s│%s %s\n", ansiDim, ansiReset, line)
+				if strings.TrimSpace(line) != "" {
+					fmt.Fprintf(writer, "%s│%s %s\n", ansiDim, ansiReset, line)
+				}
 			}
-			fmt.Fprintf(writer, "%s└──────────────────────────────────────────────┘%s\n\n", ansiYellow, ansiReset)
+			fmt.Fprintf(writer, "%s└─────────────────────────────────────────────────┘%s\n\n", ansiYellow, ansiReset)
 		},
 	)
 
 	if err != nil {
 		fmt.Fprintf(writer, "%s✗ Fallo en el debate: %v%s\n", ansiRed, err, ansiReset)
-		return
+		return ""
 	}
 
 	fmt.Fprintf(writer, "%s╔══════════════════════════════════════════════════════════════╗%s\n", ansiGreen, ansiReset)
@@ -1020,6 +1033,7 @@ func runDebate(ctx context.Context, client *agent.OllamaClient, model, topic str
 	fmt.Fprintf(writer, "%s╚══════════════════════════════════════════════════════════════╝%s\n\n", ansiGreen, ansiReset)
 	fmt.Fprintln(writer, consensus)
 	fmt.Fprintln(writer)
+	return consensus
 }
 
 func newScanner() *bufio.Scanner {
