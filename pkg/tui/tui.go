@@ -648,7 +648,7 @@ func (m *Model) View() string {
 		"%s  %s  %s  %s  %s  %s  %s",
 		styleKey.Render("Enter")+styleKeyLabel.Render(" Enviar "),
 		styleKey.Render("Shift+Enter")+styleKeyLabel.Render(" Multilínea "),
-		styleKey.Render("Ratón / PgUp")+styleKeyLabel.Render(" Scroll "),
+		styleKey.Render("PgUp/PgDn")+styleKeyLabel.Render(" Scroll/Copiar "),
 		styleKey.Render("F2")+styleKeyLabel.Render(" Rotar "),
 		styleKey.Render("/modelo")+styleKeyLabel.Render(" Modelo "),
 		styleKey.Render("/config")+styleKeyLabel.Render(" Config "),

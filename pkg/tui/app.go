@@ -50,7 +50,7 @@ type App struct {
 // NewApp creates the TUI app. The program is not started until Start is called.
 func NewApp(modelName, workspace string) *App {
 	m := NewModel(modelName, workspace, nil)
-	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	a := &App{
 		program:        p,
