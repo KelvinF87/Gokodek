@@ -15,39 +15,43 @@ import (
 
 // Colors
 var (
-	colorPrimary     = lipgloss.Color("#7C3AED")
-	colorSecondary   = lipgloss.Color("#06B6D4")
-	colorSuccess     = lipgloss.Color("#10B981")
-	colorWarning     = lipgloss.Color("#F59E0B")
-	colorError       = lipgloss.Color("#EF4444")
-	colorDim         = lipgloss.Color("#6B7280")
-	colorUserBg      = lipgloss.Color("#1F2937")
-	colorAssistantBg = lipgloss.Color("#111827")
-	colorThinking    = lipgloss.Color("#9CA3AF")
+	colorPrimary     = lipgloss.Color("#38BDF8")
+	colorSecondary   = lipgloss.Color("#818CF8")
+	colorSuccess     = lipgloss.Color("#34D399")
+	colorWarning     = lipgloss.Color("#FBBF24")
+	colorError       = lipgloss.Color("#F87171")
+	colorDim         = lipgloss.Color("#64748B")
+	colorUserBg      = lipgloss.Color("#0F172A")
+	colorAssistantBg = lipgloss.Color("#020617")
+	colorThinking    = lipgloss.Color("#94A3B8")
 )
 
 // Styles
 var (
 	styleApp    = lipgloss.NewStyle()
 	styleHeader = lipgloss.NewStyle().
-			Background(colorPrimary).
+			Background(lipgloss.Color("#0284C7")).
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Bold(true).
 			Padding(0, 2)
 	styleFooter = lipgloss.NewStyle().
-			Background(lipgloss.Color("#0F172A")).
-			Foreground(lipgloss.Color("#CBD5E1")).
+			Background(lipgloss.Color("#090D16")).
+			Foreground(lipgloss.Color("#94A3B8")).
 			Padding(0, 1)
 	stylePrompt = lipgloss.NewStyle().
-			Foreground(colorSecondary).
+			Foreground(colorPrimary).
 			Bold(true)
 	styleUser = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#E2E8F0")).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#38BDF8")).
+			Foreground(lipgloss.Color("#F8FAFC")).
 			Background(colorUserBg).
 			Padding(0, 1).
 			Margin(0, 0, 1, 0)
 	styleAssistant = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#E2E8F0")).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#334155")).
+			Foreground(lipgloss.Color("#F8FAFC")).
 			Background(colorAssistantBg).
 			Padding(0, 1).
 			Margin(0, 0, 1, 0)
@@ -62,12 +66,13 @@ var (
 			Margin(0, 0, 1, 0)
 	styleError = lipgloss.NewStyle().
 			Foreground(colorError).
-			Bold(true)
+			Bold(true).
+			Padding(0, 1)
 	styleStats = lipgloss.NewStyle().
 			Foreground(colorDim).
 			Italic(true)
 	styleKey = lipgloss.NewStyle().
-			Foreground(colorSecondary).
+			Foreground(colorPrimary).
 			Bold(true)
 	styleKeyLabel = lipgloss.NewStyle().
 			Foreground(colorDim)

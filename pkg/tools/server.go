@@ -40,30 +40,50 @@ func (t *ServerTool) Description() string {
 }
 func (t *ServerTool) Parameters() map[string]interface{} {
 	return objectSchema(map[string]interface{}{
-		"port": map[string]interface{}{"type": "integer", "description": "Optional port; default 4173. The tool chooses the next free port when necessary."},
-		"url":  map[string]interface{}{"type": "string", "description": "Optional already-configured HTTP URL to verify, such as http://localhost/project/. Use this only when the user explicitly requests an existing Apache/Laragon server."},
+		"port":      map[string]interface{}{"type": "integer", "description": "Optional port; default 4173. The tool chooses the next free port when necessary."},
+		"directory": map[string]interface{}{"type": "string", "description": "Optional directory path relative to workspace or absolute path to the project to serve."},
+		"url":       map[string]interface{}{"type": "string", "description": "Optional already-configured HTTP URL to verify, such as http://localhost/project/. Use this only when the user explicitly requests an existing Apache/Laragon server."},
 	})
 }
 
 func (t *ServerTool) Execute(raw string) (string, error) {
 	var args struct {
-		Port int    `json:"port"`
-		URL  string `json:"url"`
+		Port      int    `json:"port"`
+		Directory string `json:"directory"`
+		Path      string `json:"project_path"`
+		URL       string `json:"url"`
 	}
 	if err := json.Unmarshal([]byte(raw), &args); err != nil {
 		return "", fmt.Errorf("start_server arguments: %w", err)
 	}
 
+	targetDir := t.Workspace
+	dirInput := strings.TrimSpace(args.Directory)
+	if dirInput == "" {
+		dirInput = strings.TrimSpace(args.Path)
+	}
+	if dirInput != "" {
+		if filepath.IsAbs(dirInput) {
+			targetDir = filepath.Clean(dirInput)
+		} else {
+			targetDir = filepath.Clean(filepath.Join(t.Workspace, dirInput))
+		}
+	}
+
+	if _, err := os.Stat(targetDir); err != nil {
+		return "", fmt.Errorf("el directorio del proyecto especificado no existe: %s", targetDir)
+	}
+
 	if strings.TrimSpace(args.URL) != "" {
 		if probeURL(args.URL) {
 			state := serverState{Runtime: "existing", URL: args.URL, Started: time.Now().Format(time.RFC3339)}
-			_ = saveServerState(t.Workspace, state)
+			_ = saveServerState(targetDir, state)
 			return fmt.Sprintf("server_ready runtime=existing url=%s verified=true", args.URL), nil
 		}
 		return "", fmt.Errorf("configured URL does not respond with a usable page: %s", args.URL)
 	}
 
-	if previous, ok := loadServerState(t.Workspace); ok && probeURL(previous.URL) {
+	if previous, ok := loadServerState(targetDir); ok && probeURL(previous.URL) {
 		return fmt.Sprintf("server_ready runtime=%s url=%s verified=true reused=true launcher=%s", previous.Runtime, previous.URL, previous.Launcher), nil
 	}
 
@@ -72,16 +92,16 @@ func (t *ServerTool) Execute(raw string) (string, error) {
 		port = 4173
 	}
 	port = chooseFreePort(port)
-	plan, err := t.detectPlan()
+	plan, err := t.detectPlanInDir(targetDir)
 	if err != nil {
 		return "", err
 	}
 
-	launcher, logPath, err := writeProjectLauncher(t.Workspace, plan, port)
+	launcher, logPath, err := writeProjectLauncher(targetDir, plan, port)
 	if err != nil {
 		return "", err
 	}
-	cmd, err := launchProjectLauncher(launcher, t.Workspace)
+	cmd, err := launchProjectLauncher(launcher, targetDir)
 	if err != nil {
 		return "", err
 	}
@@ -111,20 +131,24 @@ func (t *ServerTool) Execute(raw string) (string, error) {
 }
 
 func (t *ServerTool) detectPlan() (serverPlan, error) {
+	return t.detectPlanInDir(t.Workspace)
+}
+
+func (t *ServerTool) detectPlanInDir(dir string) (serverPlan, error) {
 	// A PHP entry point wins over package.json because many PHP apps use npm
 	// only for asset compilation. Laravel is started through its own command.
-	if fileExists(filepath.Join(t.Workspace, "artisan")) && commandExists("php") {
+	if fileExists(filepath.Join(dir, "artisan")) && commandExists("php") {
 		return serverPlan{Runtime: "laravel", Command: "php", Args: []string{"artisan", "serve", "--host=127.0.0.1", "--port=PORT"}}, nil
 	}
-	if hasExtension(t.Workspace, ".php") {
+	if hasExtension(dir, ".php") {
 		if !commandExists("php") {
-			return serverPlan{}, fmt.Errorf("PHP files detected but php is not installed or not on PATH")
+			return serverPlan{}, fmt.Errorf("archivos PHP detectados en %s pero 'php' no está instalado o en el PATH", dir)
 		}
-		return serverPlan{Runtime: "php", Command: "php", Args: []string{"-S", "127.0.0.1:PORT", "-t", t.Workspace}}, nil
+		return serverPlan{Runtime: "php", Command: "php", Args: []string{"-S", "127.0.0.1:PORT", "-t", dir}}, nil
 	}
-	if packagePath := filepath.Join(t.Workspace, "package.json"); fileExists(packagePath) {
+	if packagePath := filepath.Join(dir, "package.json"); fileExists(packagePath) {
 		if !commandExists("npm") && !commandExists("npm.cmd") {
-			return serverPlan{}, fmt.Errorf("package.json detected but npm is not installed or not on PATH")
+			return serverPlan{}, fmt.Errorf("package.json detectado pero npm no está instalado")
 		}
 		for _, script := range []string{"dev", "start", "preview"} {
 			if hasPackageScript(packagePath, script) {
@@ -136,16 +160,16 @@ func (t *ServerTool) detectPlan() (serverPlan, error) {
 			}
 		}
 	}
-	if fileExists(filepath.Join(t.Workspace, "index.html")) || hasExtension(t.Workspace, ".html") {
+	if fileExists(filepath.Join(dir, "index.html")) || hasExtension(dir, ".html") {
 		if commandExists("python") {
 			return serverPlan{Runtime: "static-python", Command: "python", Args: []string{"-m", "http.server", "PORT", "--bind", "127.0.0.1"}}, nil
 		}
 		if commandExists("py") {
 			return serverPlan{Runtime: "static-python", Command: "py", Args: []string{"-m", "http.server", "PORT", "--bind", "127.0.0.1"}}, nil
 		}
-		return serverPlan{}, fmt.Errorf("HTML/CSS/JS project detected but Python is not installed; install Python or use an explicit existing HTTP URL")
+		return serverPlan{}, fmt.Errorf("proyecto HTML detectado pero Python no está instalado")
 	}
-	return serverPlan{}, fmt.Errorf("no runnable web entry point found; expected index.html, a PHP file, package.json, or Laravel artisan")
+	return serverPlan{}, fmt.Errorf("no se encontró punto de entrada ejecutable en %s; esperado index.html, .php, package.json o artisan", dir)
 }
 
 func writeProjectLauncher(workspace string, plan serverPlan, port int) (string, string, error) {
