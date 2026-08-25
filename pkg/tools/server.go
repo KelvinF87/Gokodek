@@ -117,7 +117,7 @@ func (t *ServerTool) Execute(raw string) (string, error) {
 				PID:      cmd.Process.Pid,
 				Started:  time.Now().Format(time.RFC3339),
 			}
-			if err := saveServerState(t.Workspace, state); err != nil {
+			if err := saveServerState(targetDir, state); err != nil {
 				return "", err
 			}
 			return fmt.Sprintf("server_ready runtime=%s url=%s verified=true pid=%d launcher=%s log=%s", plan.Runtime, address, cmd.Process.Pid, launcher, logPath), nil
