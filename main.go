@@ -133,6 +133,8 @@ func main() {
 		tools.NewDiagnoseProjectTool(absoluteWorkspace),
 		tools.NewUIRecipeTool(absoluteWorkspace),
 		tools.NewWebGPUSkillTool(absoluteWorkspace),
+		tools.NewHyperFramesSkillTool(absoluteWorkspace, clientEndpoint, config.EmbeddingModel),
+		tools.NewBrowserControlTool(absoluteWorkspace),
 		tools.CurrentDateTool{},
 		tools.PlanTool{},
 		tools.NewPlanFileTool(absoluteWorkspace),
